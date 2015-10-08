@@ -143,16 +143,23 @@ public class CS451_Sauceda
             switch (choice) {
                 case 2:
                     valid_choice = true;
-                    img = errorDiffusion(img, 2);
+		    getLevels(2);
+                    //img = errorDiffusion(img, 2);
                     break;
                 case 4:
                     valid_choice = true;
+		    getLevels(4);
+		    //img = errorDiffusion(img, 4);
                     break;
                 case 8:
                     valid_choice = true;
+		    getLevels(8);
+		    //img = errorDiffusion(img, 8);
                     break;
                 case 16:
                     valid_choice = true;
+		    getLevels(16);
+		    //img = errorDiffusion(img, 16);
                     break;
             }
         }
@@ -164,6 +171,7 @@ public class CS451_Sauceda
         int new_val = 0;
         int[] error = new int[3];
         int[] neighbor = new int[3];
+	int[] levels = getLevels(N);
 
         for (int y = 0; y < img.getH(); y++){
             for (int x = 0; x < img.getW(); x++) {
@@ -222,4 +230,23 @@ public class CS451_Sauceda
         }
         return img;
     }
-}
+
+	public static int[] getLevels(int N){
+		int[] levels = new int[N];
+		for (int i = 0; i < N; i++){
+			double val = 255 * i / (N - 1.0);
+			levels[i] =  (int) val;
+			System.out.println(levels[i]);
+		}
+		return levels;
+	}
+	
+	public static int closestPixel(int[] levels, int px){
+		int distance = 0;
+		int closestPixel = 0;
+		for (int i = 0; i < levels.length; i++){
+			int distanceToLevel = levels[i] - px; 
+		}
+		return closestPixel;
+	}
+}	
