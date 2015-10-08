@@ -70,7 +70,7 @@ public class Image
   }
 
   public void getPixel(int x, int y, byte[] rgb)
-  // retreive rgb values at (x,y) and store in the array
+  // retrieve rgb values at (x,y) and store in the array
   {
   	int pix = img.getRGB(x,y);
 
@@ -92,7 +92,7 @@ public class Image
   }
 
   public void getPixel(int x, int y, int[] rgb)
-  // retreive rgb values at (x,y) and store in the array
+  // retrieve rgb values at (x,y) and store in the array
   {
 	int pix = img.getRGB(x,y);
 
@@ -236,5 +236,7 @@ public class Image
       frame.pack();
       frame.setVisible(true);
   }
+  public void distributeError(int e, int x, int y){
 
+  }
 } // Image class

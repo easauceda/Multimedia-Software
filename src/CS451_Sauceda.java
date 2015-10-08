@@ -85,6 +85,9 @@ public class CS451_Sauceda
         int choice = 0;
         int total;
         int avg;
+
+        img = convert24to8(img);
+
         while(choice != 1 && choice != 2){
             System.out.println("--Conversion of a 24-Bit Color to a N-level");
             System.out.println("Input 1 for Bi-level using threshold or 2 for N-Level error diffusion");
@@ -92,10 +95,10 @@ public class CS451_Sauceda
             System.out.println("Choice");
         }
         if (choice == 1){
-            img = convert24to8(img);
             img = biLevelConversion(img);
         } else if (choice == 2) {
             System.out.println("N-level conversion");
+            img = nLevelConversion(img, input);
         }
         return img;
     }
@@ -118,7 +121,6 @@ public class CS451_Sauceda
         for (int y = 0; y < img.getH(); y++){
             for (int x = 0; x < img.getW(); x++) {
                 img.getPixel(x, y, RGBArray);
-                System.out.println(RGBArray[0]);
                 if (RGBArray[0] > ga){
                     new_val = 255;
                 } else if (RGBArray[0] <= ga){
@@ -126,6 +128,96 @@ public class CS451_Sauceda
                 }
                 Arrays.fill(gr, new_val);
                 img.setPixel(x, y, gr);
+            }
+        }
+        return img;
+    }
+
+    public static Image nLevelConversion(Image img, Scanner input){
+        int choice = 0;
+        boolean valid_choice = false;
+        while(!valid_choice){
+            System.out.println("--Conversion of a 24-Bit Color to a N-level");
+            System.out.println("Input a value for N");
+            choice = validateInput(input.nextLine());
+            switch (choice) {
+                case 2:
+                    valid_choice = true;
+                    img = errorDiffusion(img, 2);
+                    break;
+                case 4:
+                    valid_choice = true;
+                    break;
+                case 8:
+                    valid_choice = true;
+                    break;
+                case 16:
+                    valid_choice = true;
+                    break;
+            }
+        }
+        return img;
+    }
+    public static Image errorDiffusion(Image img, int N){
+        int[] RGBArray = new int[3];
+        int[] gr = new int[3];
+        int new_val = 0;
+        int[] error = new int[3];
+        int[] neighbor = new int[3];
+
+        for (int y = 0; y < img.getH(); y++){
+            for (int x = 0; x < img.getW(); x++) {
+                img.getPixel(x, y, RGBArray);
+                if (RGBArray[0] < 0){
+                    System.out.println(RGBArray[0]);
+                }
+
+                int distanceToTop = 255 - RGBArray[0];
+                int distanceToBottom = RGBArray[0];
+
+                //Choose value Q that is  nearest to original pixel's value
+                if (distanceToTop > distanceToBottom){
+                    //System.out.println(RGBArray[0] + " is nearest to 0");
+                    new_val = 0;
+                } else if (distanceToTop < distanceToBottom){
+                    //System.out.println(RGBArray[0] + " is nearest to 255");
+                    new_val = 255;
+                }
+
+
+                int er = (RGBArray[0] - new_val);
+
+                Arrays.fill(gr, new_val);
+                img.setPixel(x, y, gr);
+
+
+                if (x + 1 < img.getW()){
+                    int e = (int) (er * (7.0 / 16));
+                    img.getPixel(x + 1, y, neighbor);
+                    Arrays.fill(error, e + neighbor[0]);
+                    img.setPixel(x + 1, y, error);
+                }
+
+                if (y + 1 < img.getH()){
+                    int e = (int) (er * (5.0 / 16));
+                    img.getPixel(x, y + 1, neighbor);
+                    Arrays.fill(error, e + neighbor[0]);
+                    img.setPixel(x, y + 1, error);
+                }
+
+                if (x - 1 >= 0 && y + 1 < img.getH()){
+                    int e = (int) (er * (3.0 / 16));
+                    img.getPixel(x - 1, y + 1, neighbor);
+                    Arrays.fill(error, e + neighbor[0]);
+                    img.setPixel(x - 1, y + 1, error);
+                }
+
+                if (x + 1 < img.getW() && y + 1 < img.getH()){
+                    int e = (int) (er * (1.0 / 16));
+                    img.getPixel(x + 1, y + 1, neighbor);
+                    Arrays.fill(error, e + neighbor[0]);
+                    img.setPixel(x + 1, y + 1, error);
+                }
             }
         }
         return img;
