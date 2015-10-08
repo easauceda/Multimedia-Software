@@ -4,7 +4,8 @@ import java.util.Scanner;
 
 /*******************************************************
  CS451 Multimedia Software Systems
- @ Author: Elaine Kang
+ @ Template_Author: Elaine Kang
+ @ Author: Erick Sauceda
  *******************************************************/
 
 // Template Code
@@ -21,24 +22,28 @@ public class CS451_Sauceda
 
         Image img = new Image(args[0]);
         int choice = 0;
+        Scanner input = new Scanner(System.in);
 
         while(choice != 4) {
             switch (choice) {
                 case 1:
-                    convert24to8(img).write2PPM("Grayscale-" + args[0]);
+                    Image grey = convert24to8(img);
+                    grey.write2PPM("Grayscale-" + args[0]);
+                    grey.display("Grayscale-" + args[0]);
                     break;
                 case 2:
-                    System.out.println("You chose 2");
+                    Image NLevel = convert24toN(img, input);
+                    NLevel.write2PPM("NLevel-" + args[0]);
+                    NLevel.display("NLevel-" + args[0]);
                     break;
                 case 3:
                     System.out.println("You chose 3");
                     break;
             }
-            choice = displayMenu();
+            choice = displayMenu(input);
         }
-        img.display(args[0]+"-out");
-        img.write2PPM("out.ppm");
         System.out.println("--Good Bye--");
+        System.exit(0);
     }
 
     public static void usage()
@@ -46,9 +51,8 @@ public class CS451_Sauceda
         System.out.println("\nUsage: java CS451_Sauceda [inputfile]\n");
     }
 
-    public static int displayMenu(){
-        int choice = 0;
-        Scanner input = new Scanner(System.in);
+    public static int displayMenu(Scanner input){
+        int choice;
         System.out.println("--Welcome to Multimedia Software System--");
         System.out.println("Main Menu--------------------------------");
         System.out.println("1. Conversion to Gray-scale Image (24bits->8bits)");
@@ -56,11 +60,7 @@ public class CS451_Sauceda
         System.out.println("3. Conversion to 8bit Indexed Color using Uniform Color Quantization (24bits->8bits)");
         System.out.println("4. Quit");
         System.out.println("Please enter the task number [1-4]");
-        try {
-            choice = Integer.parseInt(input.nextLine());
-        } catch(Exception ex){
-            System.out.println("Improper value. Try again");
-        }
+        choice = validateInput(input.nextLine());
         return choice;
     }
 
@@ -69,13 +69,65 @@ public class CS451_Sauceda
         int[] gr = new int[3];
         Image gray = new Image(img.getW(), img.getH());
         for (int y = 0; y < img.getH(); y++){
-            for (int x = 0; x < img.getW(); x++){
-                img.getPixel(x,y, RGBArray);
-                int gr_val  = (byte) Math.round(0.299 * RGBArray[0] + 0.587 * RGBArray[1] + 0.114 * RGBArray[2]);
+            for (int x = 0; x < img.getW(); x++) {
+                img.getPixel(x, y, RGBArray);
+                int gr_val  = (int) Math.round(0.299 * RGBArray[0] + 0.587 * RGBArray[1] + 0.114 * RGBArray[2]);
+                if (gr_val > 255) gr_val = 255;
+                if (gr_val < 0) gr_val = 0;
                 Arrays.fill(gr, gr_val);
                 gray.setPixel(x, y, gr);
             }
         }
         return gray;
+    }
+
+    public static Image convert24toN(Image img, Scanner input){
+        int choice = 0;
+        int total;
+        int avg;
+        while(choice != 1 && choice != 2){
+            System.out.println("--Conversion of a 24-Bit Color to a N-level");
+            System.out.println("Input 1 for Bi-level using threshold or 2 for N-Level error diffusion");
+            choice = validateInput(input.nextLine());
+            System.out.println("Choice");
+        }
+        if (choice == 1){
+            img = convert24to8(img);
+            img = biLevelConversion(img);
+        } else if (choice == 2) {
+            System.out.println("N-level conversion");
+        }
+        return img;
+    }
+
+    public static Integer validateInput(String choice){
+        int validated_input = -1;
+        try {
+            validated_input = Integer.parseInt(choice);
+        } catch(Exception ex){
+            System.out.println("Improper value. Try again");
+        }
+        return validated_input;
+    }
+
+    public static Image biLevelConversion(Image img){
+        int[] RGBArray = new int[3];
+        int[] gr = new int[3];
+        int new_val = 0;
+        int ga = img.getAvgPixel();
+        for (int y = 0; y < img.getH(); y++){
+            for (int x = 0; x < img.getW(); x++) {
+                img.getPixel(x, y, RGBArray);
+                System.out.println(RGBArray[0]);
+                if (RGBArray[0] > ga){
+                    new_val = 255;
+                } else if (RGBArray[0] <= ga){
+                    new_val = 0;
+                }
+                Arrays.fill(gr, new_val);
+                img.setPixel(x, y, gr);
+            }
+        }
+        return img;
     }
 }

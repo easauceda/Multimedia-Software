@@ -55,7 +55,7 @@ public class Image
   // set rgb values at (x,y)
   {
 	int pix = 0xff000000 | ((rgb[0] & 0xff) << 16) | ((rgb[1] & 0xff) << 8) | (rgb[2] & 0xff);
-	img.setRGB(x,y,pix);
+	img.setRGB(x, y, pix);
   }
 
   public void setPixel(int x, int y, int[] irgb)
@@ -66,7 +66,7 @@ public class Image
 	for(int i=0;i<3;i++)
 	  rgb[i] = (byte) irgb[i];
 
-	setPixel(x,y,rgb);
+	setPixel(x, y, rgb);
   }
 
   public void getPixel(int x, int y, byte[] rgb)
@@ -79,6 +79,17 @@ public class Image
   	rgb[0] = (byte)(pix>>16);
   }
 
+  public int getAvgPixel(){
+	  int total = 0;
+	  int[] grgb = new int[3];
+	  for (int y = 0; y < height; y++){
+		  for (int x = 0; x < width; x++) {
+			  getPixel(x,y, grgb);
+			  total += grgb[0];
+		  }
+	  }
+	  return total / (width * height);
+  }
 
   public void getPixel(int x, int y, int[] rgb)
   // retreive rgb values at (x,y) and store in the array
@@ -175,49 +186,45 @@ public class Image
   public void write2PPM(String fileName)
   // wrrite the image data in img to a PPM file
   {
-	FileOutputStream fos = null;
-	PrintWriter dos = null;
+	  FileOutputStream fos = null;
+	  PrintWriter dos = null;
 
-	try{
-		fos = new FileOutputStream(fileName);
-		dos = new PrintWriter(fos);
+	  try {
+		  fos = new FileOutputStream(fileName);
+		  dos = new PrintWriter(fos);
 
-		System.out.println("Writing the Image buffer into "+fileName+"...");
+		  System.out.println("Writing the Image buffer into " + fileName + "...");
 
-		// write header
-		dos.print("P6"+"\n");
-		dos.print("#CS451"+"\n");
-		dos.print(width + " "+height +"\n");
-		dos.print(255+"\n");
-		dos.flush();
+		  // write header
+		  dos.print("P6" + "\n");
+		  dos.print("#CS451" + "\n");
+		  dos.print(width + " " + height + "\n");
+		  dos.print(255 + "\n");
+		  dos.flush();
 
-		// write data
-		int x, y;
-		byte[] rgb = new byte[3];
-		for(y=0;y<height;y++)
-		{
-			for(x=0;x<width;x++)
-			{
-				getPixel(x, y, rgb);
-				fos.write(rgb[0]);
-				fos.write(rgb[1]);
-				fos.write(rgb[2]);
+		  // write data
+		  int x, y;
+		  byte[] rgb = new byte[3];
+		  for (y = 0; y < height; y++) {
+			  for (x = 0; x < width; x++) {
+				  getPixel(x, y, rgb);
+				  fos.write(rgb[0]);
+				  fos.write(rgb[1]);
+				  fos.write(rgb[2]);
 
-			}
-			fos.flush();
-		}
-		dos.close();
-		fos.close();
+			  }
+			  fos.flush();
+		  }
+		  dos.close();
+		  fos.close();
 
-		System.out.println("Wrote into "+fileName+" Successfully.");
+		  System.out.println("Wrote into " + fileName + " Successfully.");
 
-	} // try
-	catch(Exception e)
-	{
-		System.err.println(e.getMessage());
-	}
+	  } // try
+	  catch (Exception e) {
+		  System.err.println(e.getMessage());
+	  }
   }
-
   public void display(String title)
   // display the image on the screen
   {
