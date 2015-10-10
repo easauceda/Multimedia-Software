@@ -1,4 +1,3 @@
-import java.awt.image.BufferedImage;
 import java.util.Arrays;
 import java.util.Scanner;
 
@@ -14,93 +13,95 @@ public class CS451_Sauceda
 {
     public static void main(String[] args)
     {
-        if(args.length != 1)
+        Image img = new Image(args[1]);
+        Scanner input = new Scanner(System.in);
+
+        if(args.length != 2)
         {
             usage();
             System.exit(1);
         }
 
-        Image img = new Image(args[0]);
-        int choice = 0;
-        Scanner input = new Scanner(System.in);
-
-        while(choice != 4) {
-            switch (choice) {
-                case 1:
-                    Image grey = convert24to8(img);
-                    grey.write2PPM("Grayscale-" + args[0]);
-                    grey.display("Grayscale-" + args[0]);
-                    break;
-                case 2:
-                    Image NLevel = convert24toN(img, input);
-                    NLevel.write2PPM("NLevel-" + args[0]);
-                    NLevel.display("NLevel-" + args[0]);
-                    break;
-                case 3:
-                    System.out.println("You chose 3");
-                    break;
-            }
-            choice = displayMenu(input);
+        switch(Integer.parseInt(args[0])){
+            case 1:
+                homeworkOne(input, img);
+                break;
+            default:
+                usage();
+                break;
         }
         System.out.println("--Good Bye--");
         System.exit(0);
     }
+    public static void homeworkOne(Scanner input, Image img){
+        int choice = 0;
+        String[] options = new String[3];
+        options[0] = "Conversion to Gray-scale Image (24bits -> 8bits)";
+        options[1] = "Conversion to N-level Image";
+        options[2] = "Conversion to 8bit Indexed Color Image using Uniform Color";
+
+        while(choice != 4) {
+            switch (choice) {
+                case 1:
+                    Image grey = img.convertToGrayscale();
+                    grey.display(grey.title  + "-grayscale.ppm");
+                    grey.write2PPM(grey.title  + "-grayscale.ppm");
+                    break;
+                case 2:
+                    convert24toN(img, input);
+                    break;
+                case 3:
+                    img.colorQuantization();
+                    break;
+            }
+            choice = displayMenu(input, options);
+        }
+    }
 
     public static void usage()
     {
-        System.out.println("\nUsage: java CS451_Sauceda [inputfile]\n");
+        System.out.println("\nUsage: java CS451_Sauceda [homework number] [inputfile]\n");
     }
 
-    public static int displayMenu(Scanner input){
+    public static int displayMenu(Scanner input, String[] options){
         int choice;
+        int i = 0;
+
         System.out.println("--Welcome to Multimedia Software System--");
         System.out.println("Main Menu--------------------------------");
-        System.out.println("1. Conversion to Gray-scale Image (24bits->8bits)");
-        System.out.println("2. Conversion to N-level image");
-        System.out.println("3. Conversion to 8bit Indexed Color using Uniform Color Quantization (24bits->8bits)");
-        System.out.println("4. Quit");
-        System.out.println("Please enter the task number [1-4]");
+
+        for (String option : options){
+            i++;
+            System.out.println(i + ". " + option);
+        }
+        i++;
+
+        System.out.println(i + ". Quit");
+        System.out.println("Please enter the task number [1-" + i+ "]");
+
         choice = validateInput(input.nextLine());
+
         return choice;
     }
 
-    public static Image convert24to8(Image img){
-        int[] RGBArray = new int[3];
-        int[] gr = new int[3];
-        Image gray = new Image(img.getW(), img.getH());
-        for (int y = 0; y < img.getH(); y++){
-            for (int x = 0; x < img.getW(); x++) {
-                img.getPixel(x, y, RGBArray);
-                int gr_val  = (int) Math.round(0.299 * RGBArray[0] + 0.587 * RGBArray[1] + 0.114 * RGBArray[2]);
-                if (gr_val > 255) gr_val = 255;
-                if (gr_val < 0) gr_val = 0;
-                Arrays.fill(gr, gr_val);
-                gray.setPixel(x, y, gr);
-            }
-        }
-        return gray;
-    }
-
-    public static Image convert24toN(Image img, Scanner input){
+    public static void convert24toN(Image img, Scanner input){
         int choice = 0;
         int total;
         int avg;
 
-        img = convert24to8(img);
+        img = img.convertToGrayscale();
 
         while(choice != 1 && choice != 2){
             System.out.println("--Conversion of a 24-Bit Color to a N-level");
             System.out.println("Input 1 for Bi-level using threshold or 2 for N-Level error diffusion");
             choice = validateInput(input.nextLine());
-            System.out.println("Choice");
         }
         if (choice == 1){
-            img = biLevelConversion(img);
+            img.biLevelConversion();
         } else if (choice == 2) {
             System.out.println("N-level conversion");
             img = nLevelConversion(img, input);
         }
-        return img;
     }
 
     public static Integer validateInput(String choice){
@@ -113,26 +114,6 @@ public class CS451_Sauceda
         return validated_input;
     }
 
-    public static Image biLevelConversion(Image img){
-        int[] RGBArray = new int[3];
-        int[] gr = new int[3];
-        int new_val = 0;
-        int ga = img.getAvgPixel();
-        for (int y = 0; y < img.getH(); y++){
-            for (int x = 0; x < img.getW(); x++) {
-                img.getPixel(x, y, RGBArray);
-                if (RGBArray[0] > ga){
-                    new_val = 255;
-                } else if (RGBArray[0] <= ga){
-                    new_val = 0;
-                }
-                Arrays.fill(gr, new_val);
-                img.setPixel(x, y, gr);
-            }
-        }
-        return img;
-    }
-
     public static Image nLevelConversion(Image img, Scanner input){
         int choice = 0;
         boolean valid_choice = false;
@@ -143,62 +124,47 @@ public class CS451_Sauceda
             switch (choice) {
                 case 2:
                     valid_choice = true;
-		    getLevels(2);
-                    //img = errorDiffusion(img, 2);
+                    img = errorDiffusion(img, 2);
+                    img.display("Tester");
                     break;
                 case 4:
                     valid_choice = true;
-		    getLevels(4);
-		    //img = errorDiffusion(img, 4);
+		            img = errorDiffusion(img, 4);
+                    img.display("Tester");
                     break;
                 case 8:
                     valid_choice = true;
-		    getLevels(8);
-		    //img = errorDiffusion(img, 8);
+		            img = errorDiffusion(img, 8);
+                    img.display("Tester");
                     break;
                 case 16:
                     valid_choice = true;
-		    getLevels(16);
-		    //img = errorDiffusion(img, 16);
+		            img = errorDiffusion(img, 16);
+                    img.display("Tester");
                     break;
             }
         }
         return img;
     }
+
     public static Image errorDiffusion(Image img, int N){
+        int new_val = 0;
         int[] RGBArray = new int[3];
         int[] gr = new int[3];
-        int new_val = 0;
         int[] error = new int[3];
         int[] neighbor = new int[3];
-	int[] levels = getLevels(N);
+	    int[] levels = getLevels(N);
 
         for (int y = 0; y < img.getH(); y++){
             for (int x = 0; x < img.getW(); x++) {
                 img.getPixel(x, y, RGBArray);
-                if (RGBArray[0] < 0){
-                    System.out.println(RGBArray[0]);
-                }
 
-                int distanceToTop = 255 - RGBArray[0];
-                int distanceToBottom = RGBArray[0];
-
-                //Choose value Q that is  nearest to original pixel's value
-                if (distanceToTop > distanceToBottom){
-                    //System.out.println(RGBArray[0] + " is nearest to 0");
-                    new_val = 0;
-                } else if (distanceToTop < distanceToBottom){
-                    //System.out.println(RGBArray[0] + " is nearest to 255");
-                    new_val = 255;
-                }
-
-
+                new_val = closestPixel(levels, RGBArray[0]);
                 int er = (RGBArray[0] - new_val);
 
                 Arrays.fill(gr, new_val);
                 img.setPixel(x, y, gr);
-
-
+                System.out.println(new_val);
                 if (x + 1 < img.getW()){
                     int e = (int) (er * (7.0 / 16));
                     img.getPixel(x + 1, y, neighbor);
@@ -236,17 +202,22 @@ public class CS451_Sauceda
 		for (int i = 0; i < N; i++){
 			double val = 255 * i / (N - 1.0);
 			levels[i] =  (int) val;
-			System.out.println(levels[i]);
 		}
 		return levels;
 	}
 	
 	public static int closestPixel(int[] levels, int px){
-		int distance = 0;
+		int distance = 999;
 		int closestPixel = 0;
-		for (int i = 0; i < levels.length; i++){
-			int distanceToLevel = levels[i] - px; 
+		for (int level : levels){
+            int distanceFromLevel = Math.abs(level - px);
+            if (distanceFromLevel < distance){
+                closestPixel = level;
+                distance = distanceFromLevel;
+            }
 		}
 		return closestPixel;
 	}
+
 }	
+//TODO: Refactor to create global variables such as RGBArray and width/height
