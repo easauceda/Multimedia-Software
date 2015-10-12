@@ -247,6 +247,7 @@ public class Image {
             }
         }
         proper.display("Indexed Image using LUT");
+        proper.write2PPM("indexed.ppm");
     }
 
     public Image convertToGrayscale() {
@@ -335,7 +336,7 @@ public class Image {
     }
 
     public static int findIndex(int r, int g, int b, int[][] lookupTable){
-        int index = -1;
+        int index = 255;
         r = (int) Math.floor(r / 32) * 32 + 16;
         g = (int) Math.floor(g / 32) * 32 + 16;
         b = (int) Math.floor(b / 64) * 64 + 32;
