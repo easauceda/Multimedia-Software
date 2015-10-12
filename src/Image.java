@@ -311,7 +311,7 @@ public class Image {
 
     }
 
-    public static int[][] generateLookupTable(){
+    private static int[][] generateLookupTable(){
         int[][] lookupTable = new int[256][3];
         int index = 0;
         System.out.println("Index  R  G  B");
@@ -350,6 +350,106 @@ public class Image {
             }
         }
         return index;
+    }
+
+    public Image errorDiffusion(Image A, int N){
+        int q;
+        int[] RGBArray = new int[3];
+        int[] gr = new int[3];
+        int[] levels = getLevels(N);
+        Image B = new Image(width, height);
+
+        for (int y = 0; y < height; y++){
+            for (int x = 0; x < width; x++) {
+                int[] error = new int[3];
+                int[] neighbor = new int[3];
+                A.getPixel(x, y, RGBArray);
+                if (RGBArray[0] < 0){
+                    Arrays.fill(RGBArray, 0);
+                }
+                if (RGBArray[0] > 255){
+                    Arrays.fill(RGBArray, 255);
+                }
+                //Choose the value that is nearest the original pixel's value
+                q = closestPixel(levels, RGBArray[0]);
+                //Assign to B
+                Arrays.fill(gr, q);
+                B.setPixel(x, y, gr);
+
+                double er = (RGBArray[0] - gr[0]);
+
+                if (x + 1 < width){
+                    A.getPixel(x + 1, y, neighbor);
+                    int e = (int) (neighbor[0] + 7.0 * er / 16.0);
+                    if (e < 0){
+                        e = 0;
+                    } else if (e > 255){
+                        e = 255;
+                    }
+                    Arrays.fill(error, e);
+                    A.setPixel(x + 1, y, error);
+                }
+
+                if (y + 1 < height){
+                    A.getPixel(x, y + 1, neighbor);
+                    int e = (int) (neighbor[0] + 5.0 * er / 16.0);
+                    if (e < 0){
+                        e = 0;
+                    } else if (e > 255){
+                        e = 255;
+                    }
+                    Arrays.fill(error, e);
+                    A.setPixel(x, y + 1, error);
+                }
+
+                if (x - 1 >= 0 && y + 1 < height){
+                    A.getPixel(x - 1, y + 1, neighbor);
+                    int e = (int) (neighbor[0] + 3.0 * er / 16.0);
+                    if (e < 0){
+                        e = 0;
+                    } else if (e > 255){
+                        e = 255;
+                    }
+                    Arrays.fill(error, e);
+                    A.setPixel(x - 1, y + 1, error);
+                }
+
+                if (x + 1 < width && y + 1 < height){
+                    A.getPixel(x + 1, y + 1, neighbor);
+                    int e = (int) (neighbor[0] + 1.0 * er / 16.0);
+                    if (e < 0){
+                        e = 0;
+                    } else if (e > 255){
+                        e = 255;
+                    }
+                    Arrays.fill(error, e);
+                    A.setPixel(x + 1, y + 1, error);
+                }
+            }
+        }
+        return B;
+    }
+
+    private static int[] getLevels(int N){
+        int[] levels = new int[N];
+        for (int i = 0; i < N; i++){
+            double val = 255 * i / (N - 1.0);
+            levels[i] =  (int) val;
+        }
+        return levels;
+    }
+
+    private static int closestPixel(int[] levels, int px){
+        int distance = 999;
+        int closestPixel = 0;
+        for (int level : levels){
+            int distanceFromLevel = Math.abs(level - px);
+            if (distanceFromLevel < distance){
+                closestPixel = level;
+                distance = distanceFromLevel;
+            }
+        }
+        return closestPixel;
     }
 } // Image class
 

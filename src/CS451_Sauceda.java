@@ -13,14 +13,16 @@ public class CS451_Sauceda
 {
     public static void main(String[] args)
     {
-        Image img = new Image(args[1]);
-        Scanner input = new Scanner(System.in);
-
         if(args.length != 2)
         {
             usage();
             System.exit(1);
         }
+
+        Image img = new Image(args[1]);
+        Scanner input = new Scanner(System.in);
+
+
 
         switch(Integer.parseInt(args[0])){
             case 1:
@@ -86,8 +88,6 @@ public class CS451_Sauceda
 
     public static void convert24toN(Image img, Scanner input){
         int choice = 0;
-        int total;
-        int avg;
 
         img = img.convertToGrayscale();
 
@@ -100,7 +100,7 @@ public class CS451_Sauceda
             img.biLevelConversion();
         } else if (choice == 2) {
             System.out.println("N-level conversion");
-            img = nLevelConversion(img, input);
+            nLevelConversion(img, input);
         }
     }
 
@@ -114,110 +114,38 @@ public class CS451_Sauceda
         return validated_input;
     }
 
-    public static Image nLevelConversion(Image img, Scanner input){
-        int choice = 0;
+    public static void nLevelConversion(Image img, Scanner input) {
+        int choice;
         boolean valid_choice = false;
-        while(!valid_choice){
+        while (!valid_choice) {
             System.out.println("--Conversion of a 24-Bit Color to a N-level");
             System.out.println("Input a value for N");
             choice = validateInput(input.nextLine());
             switch (choice) {
                 case 2:
                     valid_choice = true;
-                    img = errorDiffusion(img, 2);
+                    img = img.errorDiffusion(img, 2);
                     img.display("Tester");
+                    img.write2PPM("Tester.ppm");
                     break;
                 case 4:
                     valid_choice = true;
-		            img = errorDiffusion(img, 4);
+                    img = img.errorDiffusion(img, 4);
                     img.display("Tester");
                     break;
                 case 8:
                     valid_choice = true;
-		            img = errorDiffusion(img, 8);
+                    img = img.errorDiffusion(img, 8);
                     img.display("Tester");
                     break;
                 case 16:
                     valid_choice = true;
-		            img = errorDiffusion(img, 16);
+                    img = img.errorDiffusion(img, 16);
                     img.display("Tester");
                     break;
             }
         }
-        return img;
     }
-
-    public static Image errorDiffusion(Image img, int N){
-        int new_val = 0;
-        int[] RGBArray = new int[3];
-        int[] gr = new int[3];
-        int[] error = new int[3];
-        int[] neighbor = new int[3];
-	    int[] levels = getLevels(N);
-
-        for (int y = 0; y < img.getH(); y++){
-            for (int x = 0; x < img.getW(); x++) {
-                img.getPixel(x, y, RGBArray);
-
-                new_val = closestPixel(levels, RGBArray[0]);
-                int er = (RGBArray[0] - new_val);
-
-                Arrays.fill(gr, new_val);
-                img.setPixel(x, y, gr);
-                System.out.println(new_val);
-                if (x + 1 < img.getW()){
-                    int e = (int) (er * (7.0 / 16));
-                    img.getPixel(x + 1, y, neighbor);
-                    Arrays.fill(error, e + neighbor[0]);
-                    img.setPixel(x + 1, y, error);
-                }
-
-                if (y + 1 < img.getH()){
-                    int e = (int) (er * (5.0 / 16));
-                    img.getPixel(x, y + 1, neighbor);
-                    Arrays.fill(error, e + neighbor[0]);
-                    img.setPixel(x, y + 1, error);
-                }
-
-                if (x - 1 >= 0 && y + 1 < img.getH()){
-                    int e = (int) (er * (3.0 / 16));
-                    img.getPixel(x - 1, y + 1, neighbor);
-                    Arrays.fill(error, e + neighbor[0]);
-                    img.setPixel(x - 1, y + 1, error);
-                }
-
-                if (x + 1 < img.getW() && y + 1 < img.getH()){
-                    int e = (int) (er * (1.0 / 16));
-                    img.getPixel(x + 1, y + 1, neighbor);
-                    Arrays.fill(error, e + neighbor[0]);
-                    img.setPixel(x + 1, y + 1, error);
-                }
-            }
-        }
-        return img;
-    }
-
-	public static int[] getLevels(int N){
-		int[] levels = new int[N];
-		for (int i = 0; i < N; i++){
-			double val = 255 * i / (N - 1.0);
-			levels[i] =  (int) val;
-		}
-		return levels;
-	}
-	
-	public static int closestPixel(int[] levels, int px){
-		int distance = 999;
-		int closestPixel = 0;
-		for (int level : levels){
-            int distanceFromLevel = Math.abs(level - px);
-            if (distanceFromLevel < distance){
-                closestPixel = level;
-                distance = distanceFromLevel;
-            }
-		}
-		return closestPixel;
-	}
 
 }	
 //TODO: Refactor to create global variables such as RGBArray and width/height
