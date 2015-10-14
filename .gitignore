@@ -1,0 +1,6 @@
+*.class
+*.ppm
+*.txt
+.idea/
+*.iml
+*.swp
