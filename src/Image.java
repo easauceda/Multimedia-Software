@@ -452,6 +452,254 @@ public class Image {
         }
         return closestPixel;
     }
+
+    public void drawCircles(int M, int N, int K){
+
+        changeToWhite();
+        
+        int thickness;
+        int difRadii = 0;
+
+        int originX = 256;
+        int originY = 256;
+
+        int[] black = new int[3];
+
+        Arrays.fill(black, 0);
+
+        while (difRadii < 240){
+
+            difRadii += N;
+            thickness = difRadii + M;
+            //System.out.println("N: " + difRadii + ", M: " + thickness);
+
+            for (int radius = difRadii; radius < thickness; radius++){
+
+                for (double i = 0; i < 1; i += .0001){
+
+                    double x = originX + radius * Math.cos(2 * Math.PI * i);
+                    double y = originY + radius * Math.sin(2 * Math.PI * i);
+
+                    setPixel((int) Math.round(x), (int) Math.round(y), black);
+                }
+
+            }
+
+
+        }
+
+        display("Circle");
+        resizeNoFilter(K);
+        resizeAvgFilter(K);
+        resizeFilterOne(K);
+        resizeFilterTwo(K);
+
+    }
+
+    public void changeToWhite(){
+        int[] rgb = new int[3];
+        Arrays.fill(rgb, 255);
+
+        for (int y = 0; y < height; y++){
+            for (int x = 0; x < width; x++){
+                setPixel(x, y, rgb);
+            }
+        }
+    }
+
+    public void resizeNoFilter(int K){
+        Image noFilter = new Image(width / K, height / K);
+        int[] rgb = new int[3];
+        int noFilterX;
+        int noFilterY = 0;
+
+        for (int y = K; y <= height; y += K){
+
+            noFilterX = 0;
+
+            for (int x = K; x <= width; x += K){
+                //System.out.println(x + " " + y);
+                //System.out.println("Choosing: " + (x - K / 2) + " " + (y - K / 2));
+                getPixel(x - K, y - K, rgb);
+                noFilter.setPixel(noFilterX, noFilterY, rgb);
+                noFilterX++;
+
+            }
+            noFilterY++;
+        }
+
+        noFilter.display("No Filter");
+        //noFilter.write2PPM("noFilter.ppm");
+    }
+
+    public void resizeAvgFilter(int K){
+        Image filterAvg = new Image(width / K, height / K);
+        int[] rgb = new int[3];
+        int filterX;
+        int filterY = 0;
+
+        for (int y = K; y <= height; y += K){
+
+            filterX = 0;
+
+            for (int x = K; x <= width; x += K){
+                int total = 0;
+                int avg;
+                for (int blockY = y - K; blockY < y; blockY++){
+                    for (int blockX = x - K; blockX < x; blockX++){
+
+                        getPixel(blockX, blockY, rgb);
+                        total += rgb[0];
+
+                    }
+                }
+
+                avg = total / (K * K);
+                Arrays.fill(rgb, avg);
+
+                filterAvg.setPixel(filterX, filterY, rgb);
+                filterX++;
+
+            }
+            filterY++;
+        }
+
+        filterAvg.display("Average Filter");
+        //noFilter.write2PPM("noFilter.ppm");
+    }
+
+    public void resizeFilterOne(int K){
+        //close, but need to modify blockX and Y to center at (x,y) and check to make sure the 3 are valid
+        Image filterOne = new Image(width / K, height / K);
+        int[] rgb = new int[3];
+        int filterX;
+        int filterY = 0;
+
+        for (int y = 0; y < height; y += K){
+
+            filterX = 0;
+
+            for (int x = 0; x < width; x += K){
+                double filteredVal = 0.0;
+
+                if (x - 1 >= 0 && y - 1 >= 0){
+                    getPixel(x - 1, y - 1, rgb);
+                    filteredVal += (1.0 / 9.0) * rgb[0];
+                }
+                if (y - 1 >= 0){
+                    getPixel(x, y - 1, rgb);
+                    filteredVal += (1.0 / 9.0) * rgb[0];
+                }
+                if (x + 1 <= width && y - 1 >= 0){
+                    getPixel(x + 1, y - 1, rgb);
+                    filteredVal += (1.0 / 9.0) * rgb[0];
+                }
+                if (x - 1 >= 0){
+                    getPixel(x - 1, y, rgb);
+                    filteredVal += (1.0 / 9.0) * rgb[0];
+                }
+
+                getPixel(x, y, rgb);
+                filteredVal += (1.0 / 9.0) * rgb[0];
+
+                if (x + 1 <= width){
+                    getPixel( x + 1, y, rgb);
+                    filteredVal += (1.0 / 9.0) * rgb[0];
+                }
+                if (x - 1 >= 0 && y + 1 <= height){
+                    getPixel( x - 1, y + 1 , rgb );
+                    filteredVal += (1.0 / 9.0) * rgb[0];
+                }
+                if (y + 1 <= height){
+                    getPixel(x, y + 1, rgb);
+                    filteredVal += (1.0 / 9.0) * rgb[0];
+                }
+                if (x + 1 <= width && y + 1 <= height){
+                    getPixel( x + 1, y + 1, rgb);
+                    filteredVal += (1.0 / 9.0) * rgb[0];
+                }
+
+                filteredVal = Math.round(filteredVal);
+                if (filteredVal > 255){
+                    filteredVal = 255;
+                }
+
+                Arrays.fill(rgb, (int) filteredVal);
+
+                filterOne.setPixel(filterX, filterY, rgb);
+                filterX++;
+            }
+            filterY++;
+        }
+
+        filterOne.display("Filter One");
+
+    }
+
+    public void resizeFilterTwo(int K) {
+        Image filterTwo = new Image(width / K, height / K);
+        int[] rgb = new int[3];
+        int filterX;
+        int filterY = 0;
+
+        for (int y = 0; y < height; y += K) {
+
+            filterX = 0;
+
+            for (int x = 0; x < width; x += K) {
+                double filteredVal = 0.0;
+
+                if (x - 1 >= 0 && y - 1 >= 0) {
+                    getPixel(x - 1, y - 1, rgb);
+                    filteredVal += (1.0 / 16.0) * rgb[0];
+                }
+                if (y - 1 >= 0) {
+                    getPixel(x, y - 1, rgb);
+                    filteredVal += (2.0 / 16.0) * rgb[0];
+                }
+                if (x + 1 <= width && y - 1 >= 0) {
+                    getPixel(x + 1, y - 1, rgb);
+                    filteredVal += (1.0 / 16.0) * rgb[0];
+                }
+                if (x - 1 >= 0) {
+                    getPixel(x - 1, y, rgb);
+                    filteredVal += (2.0 / 16.0) * rgb[0];
+                }
+
+                getPixel(x, y, rgb);
+                filteredVal += (4.0 / 16.0) * rgb[0];
+
+                if (x + 1 <= width) {
+                    getPixel(x + 1, y, rgb);
+                    filteredVal += (2.0 / 16.0) * rgb[0];
+                }
+                if (x - 1 >= 0 && y + 1 <= height) {
+                    getPixel(x - 1, y + 1, rgb);
+                    filteredVal += (1.0 / 16.0) * rgb[0];
+                }
+                if (y + 1 <= height) {
+                    getPixel(x, y + 1, rgb);
+                    filteredVal += (2.0 / 16.0) * rgb[0];
+                }
+                if (x + 1 <= width && y + 1 <= height) {
+                    getPixel(x + 1, y + 1, rgb);
+                    filteredVal += (1.0 / 16.0) * rgb[0];
+                }
+
+                filteredVal = Math.round(filteredVal);
+                if (filteredVal > 255) {
+                    filteredVal = 255;
+                }
+
+                Arrays.fill(rgb, (int) filteredVal);
+
+                filterTwo.setPixel(filterX, filterY, rgb);
+                filterX++;
+            }
+            filterY++;
+        }
+
+        filterTwo.display("Filter Two");
+    }
 } // Image class
 
-//TODO: Refactor to rewrite upon conversion

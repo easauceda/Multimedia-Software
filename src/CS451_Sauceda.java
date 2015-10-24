@@ -11,22 +11,22 @@ import java.util.Scanner;
 
 public class CS451_Sauceda
 {
-    public static void main(String[] args)
-    {
-        if(args.length != 2)
-        {
-            usage();
-            System.exit(1);
-        }
-
-        Image img = new Image(args[1]);
+    public static void main(String[] args) {
         Scanner input = new Scanner(System.in);
-
-
 
         switch(Integer.parseInt(args[0])){
             case 1:
+                if(args.length != 2)
+                {
+                    usage();
+                    System.exit(1);
+                }
+
+                Image img = new Image(args[1]);
                 homeworkOne(input, img);
+                break;
+            case 2:
+                homeworkTwo(input);
                 break;
             default:
                 usage();
@@ -35,6 +35,7 @@ public class CS451_Sauceda
         System.out.println("--Good Bye--");
         System.exit(0);
     }
+
     public static void homeworkOne(Scanner input, Image img){
         int choice = 0;
         String[] options = new String[3];
@@ -54,6 +55,36 @@ public class CS451_Sauceda
                     break;
                 case 3:
                     img.colorQuantization();
+                    break;
+            }
+            choice = displayMenu(input, options);
+        }
+    }
+
+    public static void homeworkTwo(Scanner input){
+        int choice = 0;
+        String[] options = new String[2];
+        options[0] = "Aliasing";
+        options[1] = "Dictionary Coding";
+
+        while(choice != 3) {
+            switch (choice) {
+                case 1:
+                    Image circles = new Image(512, 512);
+
+                    System.out.println("Enter M (Thickness)");
+                    int M = Integer.parseInt(input.nextLine());
+
+                    System.out.println("Enter N (Difference between successive Radii");
+                    int N = Integer.parseInt(input.nextLine());
+
+                    System.out.println("Enter K");
+                    int K = Integer.parseInt(input.nextLine());
+
+                    circles.drawCircles(M, N, K);
+                    break;
+                case 2:
+                    //do more stuff
                     break;
             }
             choice = displayMenu(input, options);
@@ -149,3 +180,4 @@ public class CS451_Sauceda
 
 }	
 //TODO: Refactor to create global variables such as RGBArray and width/height
+//TODO: Move functions nLevelConversion & nLevelConversion from main class to support classe
