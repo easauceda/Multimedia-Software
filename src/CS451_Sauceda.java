@@ -85,12 +85,16 @@ public class CS451_Sauceda
                     break;
                 case 2:
                     DictionaryCoder input_data = new DictionaryCoder();
-                    try{
+
+                    try {
+
                         input_data.encode();
+
                     } catch (Exception e){
-                    System.out.println("Something went wrong");
+
+                        System.out.println("Something went wrong");
+
                     }
-                    input_data.decode();
                     break;
             }
             choice = displayMenu(input, options);
@@ -186,4 +190,4 @@ public class CS451_Sauceda
 
 }	
 //TODO: Refactor to create global variables such as RGBArray and width/height
-//TODO: Move functions nLevelConversion & nLevelConversion from main class to support classe
+//TODO: Move functions nLevelConversion & nLevelConversion from main class to support class
