@@ -47,8 +47,8 @@ public class CS451_Sauceda
             switch (choice) {
                 case 1:
                     Image grey = img.convertToGrayscale();
-                    grey.display(grey.title  + "-grayscale.ppm");
-                    grey.write2PPM(grey.title  + "-grayscale.ppm");
+                    grey.display(grey.title + "-grayscale.ppm");
+                    grey.write2PPM(grey.title + "-grayscale.ppm");
                     break;
                 case 2:
                     convert24toN(img, input);
@@ -84,7 +84,13 @@ public class CS451_Sauceda
                     circles.drawCircles(M, N, K);
                     break;
                 case 2:
-                    //do more stuff
+                    DictionaryCoder input_data = new DictionaryCoder();
+                    try{
+                        input_data.encode();
+                    } catch (Exception e){
+                    System.out.println("Something went wrong");
+                    }
+                    input_data.decode();
                     break;
             }
             choice = displayMenu(input, options);
