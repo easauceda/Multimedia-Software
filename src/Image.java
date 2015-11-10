@@ -701,5 +701,132 @@ public class Image {
 
         filterTwo.display("Filter Two");
     }
+    //start at old width/height, loop to pad
+    public void padImage(int origW, int origH){
+        int[] rgb = {0,0,0};
+        for (int y = origH; y < height; y++){
+            for (int x = origW; x < width; x++){
+                setPixel(x, y, rgb);
+            }
+        }
+    }
+    public void copy(Image origImg, int origImgW, int origImgH){
+        int[] rgb = new int[3];
+        for (int y = 0; y < origImgH; y++){
+            for (int x = 0; x < origImgW; x++){
+                origImg.getPixel(x, y, rgb);
+                setPixel(x, y, rgb);
+            }
+        }
+    }
+
+    public void dePad(int origImgW, int origImgH){
+        Image resizedImg = new Image(origImgW, origImgH);
+        resizedImg.copy(this, origImgW, origImgH);
+        img = resizedImg.img;
+        width = origImgW;
+        height = origImgH;
+    }
+
+    public double[][][] transformYCbCr(){
+        double[][][] transformedPixels = new double [height][width][3];
+        double[] YCbCr = new double[3];
+        int[] rgb = new int[3];
+        int R, G, B;
+        double Y, Cr, Cb;
+
+        //Y = (R * 0.299) + (G * 0.587)  + (B * 0.144)
+        //Limit check Y, range 0 - 255
+        //Cb = (R * -0.168736) + (G * -0.331264) + (B * 0.5000)
+        //Cr = (R * 0.5000) + (G * -0.4187) + (B * -0.0813)
+        //Limit check Cb & Cr, range -127.5 - 127.5
+
+        //Y - 128
+        //Cb & Cr - .5
+
+        for (int y = 0; y < height; y++){
+            for (int x = 0; x < width; x++){
+                getPixel(x, y, rgb);
+
+                R = rgb[0];
+                G = rgb[1];
+                B = rgb[2];
+
+                Y = (R * 0.299) + (G * 0.587)  + (B * 0.144);
+                Cb = (R * -0.168736) + (G * -0.331264) + (B * 0.5000);
+                Cr = (R * 0.5000) + (G * -0.4187) + (B * -0.0813);
+
+                Y = limitCheck(Y, 0, 255);
+                Cb = limitCheck(Cb, -127.5, 127.5);
+                Cr = limitCheck(Cr, -127.5, 127.5);
+
+                Y -= 128;
+                Cb -= 0.5;
+                Cr -= 0.5;
+
+                YCbCr[0] = Y;
+                YCbCr[1] = Cb;
+                YCbCr[2] = Cr;
+
+                transformedPixels[y][x] = YCbCr;
+            }
+        }
+        return transformedPixels;
+    }
+
+    public double limitCheck(double val, double min, double max){
+        if (val < min){
+            val = min;
+        } else if (val > max){
+            val = max;
+        }
+        return val;
+    }
+    public double[][][] subsample(double[][][] YCbCr){
+        double[][][] sampled = new double[height / 2][width / 2][2];
+        double Cb, Cr;
+        int downTwo, downOne, rightTwo, rightOne;
+
+        for (int y = 0; y < height; y += 2){
+            for (int x = 0; x < width; x += 2){
+                downTwo = y + 2;
+                downOne = y + 1;
+                rightTwo = x + 2;
+                rightOne = x + 1;
+
+                Cb = YCbCr[downTwo][rightTwo][1] + YCbCr[downOne][x][1] + YCbCr[y][rightOne][1] + YCbCr[y][x][1];
+                Cb = Cb / 4;
+                sampled[downTwo][rightTwo][0] = Cb;
+
+                Cr = YCbCr[downTwo][rightTwo][2] + YCbCr[downTwo][x][2] + YCbCr[y][rightTwo][2] + YCbCr[y][x][2];
+                Cr = Cr / 4;
+                sampled[downTwo][rightTwo][1] = Cr;
+            }
+        }
+
+        return sampled;
+    }
+
+    public void reverseSampling(double[][][] subYCBCr, double[][][] YCbCr){
+        Image reversedImg = new Image(width, height);
+        int[] rgb = new int[3];
+        double Y, Cb, Cr;
+        int downTwo, downOne, rightTwo, rightOne;
+
+
+        for (int y = 0; y < width; y += 2){
+            for (int x = 0; x < height; x += 2){
+                downTwo = y + 2;
+                downOne = y + 1;
+                rightTwo = x + 2;
+                rightOne = x + 1;
+                //Set Y for group of 4
+                Cb = subYCBCr[y][x][0];
+                Cr = subYCBCr[y][x][1];
+
+
+            }
+        }
+    }
 } // Image class
 

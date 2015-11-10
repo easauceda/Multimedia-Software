@@ -21,12 +21,14 @@ public class CS451_Sauceda
                     usage();
                     System.exit(1);
                 }
-
                 Image img = new Image(args[1]);
                 homeworkOne(input, img);
                 break;
             case 2:
                 homeworkTwo(input);
+                break;
+            case 3:
+                homeworkThree.start(args[1], input);
                 break;
             default:
                 usage();
