@@ -735,15 +735,6 @@ public class Image {
         int R, G, B;
         double Y, Cr, Cb;
 
-        //Y = (R * 0.299) + (G * 0.587)  + (B * 0.144)
-        //Limit check Y, range 0 - 255
-        //Cb = (R * -0.168736) + (G * -0.331264) + (B * 0.5000)
-        //Cr = (R * 0.5000) + (G * -0.4187) + (B * -0.0813)
-        //Limit check Cb & Cr, range -127.5 - 127.5
-
-        //Y - 128
-        //Cb & Cr - .5
-
         for (int y = 0; y < height; y++){
             for (int x = 0; x < width; x++){
                 getPixel(x, y, rgb);
