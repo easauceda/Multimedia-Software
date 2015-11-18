@@ -1,3 +1,5 @@
+import java.util.Arrays;
+import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -5,56 +7,75 @@ import java.util.Scanner;
  */
 public class homeworkThree {
     public static void start(String filename, Scanner input){
-        //F1. Read and resize the input image
-        //Read the image
-        Image origImg = new Image(filename);
-        //Instantiate img we will work with
-        Image workImg;
-        //Check height
-        int origImgH = origImg.getH();
-        //Check width
-        int origImgW = origImg.getW();
-        //if height % 8 != 0 || width % 8 != 0
-        if (origImgH % 8 != 0 || origImgW % 8 != 0) {
-            int resizeH = (int) Math.ceil(origImgH / 8.0) * 8;
-            int resizeW = (int) Math.ceil(origImgW / 8.0) * 8;
+        //F1. Read and Resize the Input Image
+        Image originalImg = new Image(filename);
+        originalImg.display("original");
 
-            workImg = new Image(resizeW, resizeH);
-            workImg.copy(origImg, origImgW, origImgH);
-            workImg.padImage(origImgW, origImgH);
+        int imgW = originalImg.getW();
+        int imgH = originalImg.getH();
 
-        } else {
-            workImg = origImg;
-        }
-        workImg.display("Resized Image");
-        //I4. I4. Remove Padding and Display the image
-        workImg.dePad(origImgW, origImgH);
-        workImg.display("Decompressed Image");
+        originalImg.resizeMult8();
+        originalImg.display("F1");
+
+        int resW = originalImg.getW();
+        int resH = originalImg.getH();
 
         //F2. Color space transformation and Subsampling
+        double[][] Y, Cb, Cr;
+        int newWidth = originalImg.getW() / 2;
+        int newHeight = originalImg.getH() / 2;
+        Y = new double[resW][resH];
+        Cb =  new double[resW][resH];
+        Cr = new double[resW][resH];
 
-            //Transform pixels
-        double[][][] yCbCr = workImg.transformYCbCr();
-        //Subsample using 4:2:0
-            //4 = J, this is how wide the blocks are
-        double[][][] subYCbCr = workImg.subsample(yCbCr);
+        //System.out.println(newHeight);
+        originalImg.transformYCbCr(Y, Cb, Cr);
+        if ((originalImg.getW() / 2.0) % 8 != 0){
+            newWidth = (int) (Math.ceil(originalImg.getW() / 16.0) * 8);
+        }
 
-        //I3.  Inverse Color space transformation and Supersampling
+        if ((originalImg.getH() / 2.0) % 8 != 0) {
+            newHeight = (int) Math.ceil(originalImg.getH() / 16.0) * 8;
+        }
+        //System.out.println(newWidth + ", " + newHeight);
 
-        workImg.reverseSampling(subYCbCr, yCbCr);
+        double[][] sampledCb = new double[newWidth][newHeight];
+        double[][] sampledCr = new double[newWidth][newHeight];
 
-
-
-
-        //I3. Inverse Color space transformation and Supersampling
+        originalImg.subSample(Cb, Cr, sampledCb, sampledCr);
 
         //F3. Discrete Cosine Transform
-        //I2. Inverse DCT
+        double[][] dctCb = new double[newWidth][newHeight];
+        double[][] dctY = new double[resW][resH];
+        double[][] dctCr = new double[newWidth][newHeight];
+        originalImg.dctTransform(Y, sampledCb, sampledCr, dctY, dctCb, dctCr);
 
-        //F4. Quantization
-        //I1. De-quantization
+        //I2. Inverse Discrete Cosine Transform
+        double[][] inverseCb = new double[newWidth][newHeight];
+        double[][] inverseY = new double[resW][resH];
+        double[][] inverseCr = new double[newWidth][newHeight];
+        originalImg.dctInverse(dctY, dctCb, dctCr, inverseY, inverseCb, inverseCr);
 
-        //F5. Compression Ratio
+        //I3. Inverse Color Space Transformation and Supersampling
+        Image sampleImg = new Image(resW, resH);
+        sampleImg.copyImage(originalImg, imgW, imgH);
+        double[][] sampledY = new double[resW][resH];
+        for (int a = 0; a < Y.length; a++){
+            for (int b = 0; b < Y[0].length; b++){
+                sampledY[a][b] = Y[a][b];
+            }
+        }
+        double[][] newCb, newCr;
+        newCb = new double[resW][resH];
+        newCr = new double[resW][resH];
+        sampleImg.superSample(newCb, newCr, inverseCb, inverseCr);
+        sampleImg.transformRGB(sampledY, newCb, newCr);
+        sampleImg.display("I3");
+
+        //I4. Remove Padding and Display the Image
+        originalImg.decompress(imgW, imgH);
+        originalImg.display("I4");
+
         input.next();
     }
 }

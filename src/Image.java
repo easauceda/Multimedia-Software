@@ -701,40 +701,55 @@ public class Image {
 
         filterTwo.display("Filter Two");
     }
-    //start at old width/height, loop to pad
-    public void padImage(int origW, int origH){
-        int[] rgb = {0,0,0};
-        for (int y = origH; y < height; y++){
-            for (int x = origW; x < width; x++){
-                setPixel(x, y, rgb);
+    public void resizeMult8(){
+        boolean resizeNeeded = false;
+        int newWidth = width;
+        int newHeight = height;
+
+        if (width % 8 != 0){
+            resizeNeeded = true;
+            newWidth = (int) Math.ceil(width / 8.0) * 8;
+        }
+        if (height % 8 != 0){
+            resizeNeeded = true;
+            newHeight = (int) Math.ceil(height / 8.0) * 8;
+        }
+        if (resizeNeeded){
+            int[] rgb = new int[3];
+            int x = width;
+            int y = height;
+            Image temp_img = new Image(newWidth, newHeight);
+            temp_img.copyImage(this, width, height);
+            Arrays.fill(rgb, 0);
+            for (; y < newHeight; y++){
+                for (; x < newWidth; x++){
+                    temp_img.setPixel(x, y, rgb);
+                }
             }
+            img = temp_img.img;
+            width = newWidth;
+            height = newHeight;
         }
     }
-    public void copy(Image origImg, int origImgW, int origImgH){
+    public void decompress(int OldWidth, int OldHeight){
+        Image temp_img = new Image(OldWidth, OldHeight);
+        temp_img.copyImage(this, OldWidth, OldHeight);
+        img = temp_img.img;
+    }
+
+    public void copyImage(Image ImgToBeCopied, int oldWidth, int oldHeight){
         int[] rgb = new int[3];
-        for (int y = 0; y < origImgH; y++){
-            for (int x = 0; x < origImgW; x++){
-                origImg.getPixel(x, y, rgb);
-                setPixel(x, y, rgb);
+        for(int y = 0; y < oldHeight; y++){
+            for (int x = 0; x < oldWidth; x++){
+                ImgToBeCopied.getPixel(x, y, rgb);
+                setPixel(x,y, rgb);
             }
         }
     }
-
-    public void dePad(int origImgW, int origImgH){
-        Image resizedImg = new Image(origImgW, origImgH);
-        resizedImg.copy(this, origImgW, origImgH);
-        img = resizedImg.img;
-        width = origImgW;
-        height = origImgH;
-    }
-
-    public double[][][] transformYCbCr(){
-        double[][][] transformedPixels = new double [height][width][3];
-        double[] YCbCr = new double[3];
+    public void transformYCbCr(double[][] Y, double[][] Cb, double[][] Cr){
         int[] rgb = new int[3];
         int R, G, B;
-        double Y, Cr, Cb;
-
+        double Ypx, Cbpx, Crpx;
         for (int y = 0; y < height; y++){
             for (int x = 0; x < width; x++){
                 getPixel(x, y, rgb);
@@ -743,26 +758,23 @@ public class Image {
                 G = rgb[1];
                 B = rgb[2];
 
-                Y = (R * 0.299) + (G * 0.587)  + (B * 0.144);
-                Cb = (R * -0.168736) + (G * -0.331264) + (B * 0.5000);
-                Cr = (R * 0.5000) + (G * -0.4187) + (B * -0.0813);
+                Ypx = (R * 0.299) + (G * 0.587)  + (B * 0.144);
+                Cbpx = (R * -0.168736) + (G * -0.331264) + (B * 0.5000);
+                Crpx = (R * 0.5000) + (G * -0.4187) + (B * -0.0813);
 
-                Y = limitCheck(Y, 0, 255);
-                Cb = limitCheck(Cb, -127.5, 127.5);
-                Cr = limitCheck(Cr, -127.5, 127.5);
+                Ypx = limitCheck(Ypx, 0, 255);
+                Cbpx = limitCheck(Cbpx, -127.5, 127.5);
+                Crpx = limitCheck(Crpx, -127.5, 127.5);
 
-                Y -= 128;
-                Cb -= 0.5;
-                Cr -= 0.5;
+                Ypx -= 128;
+                Cbpx -= 0.5;
+                Crpx -= 0.5;
 
-                YCbCr[0] = Y;
-                YCbCr[1] = Cb;
-                YCbCr[2] = Cr;
-
-                transformedPixels[y][x] = YCbCr;
+                Y[x][y] = Ypx;
+                Cb[x][y] = Cbpx;
+                Cr[x][y] = Crpx;
             }
         }
-        return transformedPixels;
     }
 
     public double limitCheck(double val, double min, double max){
@@ -773,47 +785,324 @@ public class Image {
         }
         return val;
     }
-    public double[][][] subsample(double[][][] YCbCr){
-        double[][][] sampled = new double[height / 2][width / 2][2];
-        double Cb, Cr;
-        int downTwo, downOne, rightTwo, rightOne;
 
-        for (int y = 0; y < height; y += 2){
-            for (int x = 0; x < width; x += 2){
-                downTwo = y + 2;
-                downOne = y + 1;
-                rightTwo = x + 2;
-                rightOne = x + 1;
+    public int limitCheck(double val, int min, int max){
+        if (val < min){
+            val = min;
+        } else if (val > max){
+            val = max;
+        }
+        return (int) val;
+    }
 
-                Cb = YCbCr[downTwo][rightTwo][1] + YCbCr[downOne][x][1] + YCbCr[y][rightOne][1] + YCbCr[y][x][1];
-                Cb = Cb / 4;
-                sampled[downTwo][rightTwo][0] = Cb;
+    public void subSample(double[][] Cb, double[][] Cr, double[][] sampledCb, double[][] sampledCr){
+        int newWidth = width / 2;
+        int newHeight = height / 2;
+        int i, j;
+        i = j = 0;
 
-                Cr = YCbCr[downTwo][rightTwo][2] + YCbCr[downTwo][x][2] + YCbCr[y][rightTwo][2] + YCbCr[y][x][2];
-                Cr = Cr / 4;
-                sampled[downTwo][rightTwo][1] = Cr;
+        for (int x = 0; x < Cb.length - 1; x += 2) {
+            j = 0;
+            for (int y = 0; y < Cb[0].length - 1; y += 2) {
+                double avg = (Cb[x][y] + Cb[x + 1][y] + Cb[x][y + 1] + Cb[x + 1][y + 1]) / 4.0;
+                sampledCb[i][j] = avg;
+                avg = (Cr[x][y] + Cr[x + 1][y] + Cr[x][y + 1] + Cr[x + 1][y + 1]) / 4.0;
+                sampledCr[i][j] = avg;
+                j++;
+                //System.out.println("Left off at: " + x + ", " + y);
+            }
+            i++;
+        }
+        //System.out.println("Starting at: " + (i - 1) + ","+ j);
+        for (int x = i - 1; x < sampledCb.length; x++){
+            for (int y = j; y < sampledCb[0].length; y++){
+                //System.out.println("Padding 0 at: " + x + "," + y);
+                sampledCb[x][y] = 0;
+                sampledCr[x][y] = 0;
+            }
+            j = 0;
+        }
+
+    }
+
+    public void superSample(double[][] newCb, double[][] newCr, double[][] sampledCb, double[][] sampledCr){
+        int i = 0;
+        int j;
+        for(int x = 0; x < newCr.length / 2; x++){
+            j = 0;
+            for (int y = 0; y < newCr[0].length / 2; y++){
+                double avg_cb = sampledCb[x][y];
+                double avg_cr = sampledCr[x][y];
+
+                newCb[i][j] = avg_cb;
+                newCb[i + 1][j] = avg_cb;
+                newCb[i][j + 1] = avg_cb;
+                newCb[i + 1][j + 1] = avg_cb;
+
+                newCr[i][j] = avg_cr;
+                newCr[i + 1][j] = avg_cr;
+                newCr[i][j + 1] = avg_cr;
+                newCr[i + 1][j + 1] = avg_cr;
+                j += 2;
+            }
+            i += 2;
+        }
+    }
+
+    public void transformRGB(double[][] Y, double[][] newCr, double[][] newCb){
+        int[] rgb = new int[3];
+
+        for (int x = 0; x < Y.length - 1; x++){
+            for (int y = 0; y < Y[0].length - 1; y++){
+                Y[x][y] += 128;
+                newCr[x][y] += 0.5;
+                newCb[x][y] += 0.5;
             }
         }
 
-        return sampled;
+        for (int y = 0; y < height; y++){
+            for (int x = 0; x < width; x++){
+                double Y_px = Y[x][y];
+                double Cr_px = newCr[x][y];
+                double Cb_px = newCb[x][y];
+
+                double R = (Y_px * 1.000) + (Cr_px * 0)  + (Cb_px * 1.4020);
+                double G = (Y_px * 1.000) + (Cr_px * -0.3441) + (Cb_px * -0.7141);
+                double B = (Y_px * 1.000) + (Cr_px * 1.7720) + (Cb_px * 0);
+                rgb[0] = limitCheck(R, 0, 255);
+                rgb[1] = limitCheck(G, 0, 255);
+                rgb[2] = limitCheck(B, 0, 255);
+                setPixel(x, y, rgb);
+            }
+        }
     }
+    public void dctTransform(double[][] Y, double[][] sampledCb, double[][] sampledCr, double[][] dctY, double[][] dctCb, double[][] dctCr){
+        double Cu, Cv;
+        for (int u = 0; u < Y.length; u += 8){
+            for (int v = 0; v < Y[0].length; v += 8){
+                for (int x = 0; x < 8; x++){
+                    for (int y = 0; y < 8; y++){
 
-    public void reverseSampling(double[][][] subYCBCr, double[][][] YCbCr){
-        Image reversedImg = new Image(width, height);
-        int[] rgb = new int[3];
-        double Y, Cb, Cr;
-        int downTwo, downOne, rightTwo, rightOne;
+                        double y_sum = 0;
+                        for (int i = u; i < 8; i++){
+                            for (int j = v; j < 8; j++){
+
+                                double u_cos = Math.cos((((2 * i) + 1) * x * Math.PI) / 16.0);
+                                double v_cos = Math.cos((((2 * j) + 1) * y * Math.PI) / 16.0);
+
+                                y_sum += u_cos * v_cos * Y[i][j];
+                                if (x == 0 && u == 0 && v == 0 && i == 0 && y == 0){
+                                    System.out.println("DCT Y: " + Y[i][j]);
+                                }
+
+                            }
+                        }
+
+                        if (x == 0){
+                            Cu = (1.0 / (Math.sqrt(2.0)));
+                        } else {
+                            Cu = 1.0;
+                        }
+
+                        if (y == 0){
+                            Cv = (1.0 / (Math.sqrt(2.0)));
+                        } else {
+                            Cv = 1.0;
+                        }
+                        y_sum *= (Cu * Cv * (1.0 / 4.0));
+                        dctY[x + u][y + v] = limitCheck(y_sum, -Math.pow(2.0, 10.0), Math.pow(2.0, 10.0));
+
+                    }
+                }
 
 
-        for (int y = 0; y < width; y += 2){
-            for (int x = 0; x < height; x += 2){
-                downTwo = y + 2;
-                downOne = y + 1;
-                rightTwo = x + 2;
-                rightOne = x + 1;
-                //Set Y for group of 4
-                Cb = subYCBCr[y][x][0];
-                Cr = subYCBCr[y][x][1];
+            }
+        }
+
+        for (int u = 0; u < sampledCb.length; u += 8){
+            for (int v = 0; v < sampledCb[0].length; v += 8){
+
+                for (int x = 0; x < 8; x++){
+                    for (int y = 0; y < 8; y++){
+
+                        double cb_sum = 0;
+                        for (int i = u; i < 8; i++){
+                            for (int j = v; j < 8; j++){
+
+                                double u_cos = Math.cos((((2 * i) + 1) * x * Math.PI) / 16.0);
+                                double v_cos = Math.cos((((2 * j) + 1) * y * Math.PI) / 16.0);
+
+                                cb_sum += u_cos * v_cos * sampledCb[i][j];
+
+                            }
+                        }
+
+                        if (x == 0){
+                            Cu = (1.0 / (Math.sqrt(2.0)));
+                        } else {
+                            Cu = 1.0;
+                        }
+
+                        if (y == 0){
+                            Cv = (1.0 / (Math.sqrt(2.0)));
+                        } else {
+                            Cv = 1.0;
+                        }
+                        cb_sum *= (Cu * Cv * (1.0 / 4.0));
+                        dctCb[u + x][y + v] = limitCheck(cb_sum, -Math.pow(2.0, 10.0), Math.pow(2.0, 10.0));
+                    }
+                }
+
+
+            }
+        }
+
+        for (int u = 0; u < sampledCr.length; u += 8){
+            for (int v = 0; v < sampledCr[0].length; v += 8){
+                for (int x = 0; x < 8; x++){
+                    for (int y = 0; y < 8; y++){
+
+                        double cr_sum = 0;
+                        for (int i = u; i < 8; i++){
+                            for (int j = v; j < 8; j++){
+
+                                double u_cos = Math.cos((((2 * i) + 1) * x * Math.PI) / 16.0);
+                                double v_cos = Math.cos((((2 * j) + 1) * y * Math.PI) / 16.0);
+
+                                cr_sum += u_cos * v_cos * sampledCr[i][j];
+
+                            }
+                        }
+
+                        if (x == 0){
+                            Cu = (1.0 / (Math.sqrt(2.0)));
+                        } else {
+                            Cu = 1.0;
+                        }
+
+                        if (y == 0){
+                            Cv = (1.0 / (Math.sqrt(2.0)));
+                        } else {
+                            Cv = 1.0;
+                        }
+                        cr_sum *= (Cu * Cv * (1.0 / 4.0));
+                        dctCr[x + u][y + v] = limitCheck(cr_sum, -Math.pow(2.0, 10.0), Math.pow(2.0, 10.0));
+                    }
+                }
+
+
+            }
+        }
+    }
+    public void dctInverse(double[][]Y, double[][] Cb, double[][] Cr, double[][] inverseY, double[][] inverseCb, double[][] inverseCr){
+        double Cv, Cu;
+        for (int u = 0; u < Y.length; u += 8){
+            for (int v = 0; v < Y[0].length; v += 8){
+                for (int x = 0; x < 8; x++){
+                    for (int y = 0; y < 8; y++){
+                        double y_sum = 0;
+                        for (int i = u; i < 8; i++){
+                            for (int j = v; j < 8; j++){
+                                if (x == 0){
+                                    Cu = (1.0 / (Math.sqrt(2.0)));
+                                } else {
+                                    Cu = 1.0;
+                                }
+
+                                if (y == 0){
+                                    Cv = (1.0 / (Math.sqrt(2.0)));
+                                } else {
+                                    Cv = 1.0;
+                                }
+
+                                double u_cos = Math.cos((((2 * i) + 1) * x * Math.PI) / 16.0);
+                                double v_cos = Math.cos((((2 * j) + 1) * y * Math.PI) / 16.0);
+
+                                y_sum += Cu * Cv * u_cos * v_cos * Y[i][j];
+
+                            }
+                        }
+                        y_sum = (1.0 / 4.0) * y_sum;
+                        inverseY[x + u][y + v] = y_sum;
+                        if (y == 0 && u == 0 && v == 0){
+                            System.out.println("Inverse DCT Y: " + y_sum);
+                        }
+
+                    }
+                }
+
+
+            }
+        }
+        for (int u = 0; u < Cr.length; u += 8){
+            for (int v = 0; v < Cr[0].length; v += 8){
+                for (int x = 0; x < 8; x++){
+                    for (int y = 0; y < 8; y++){
+
+                        if (x == 0){
+                            Cu = (1.0 / (Math.sqrt(2.0)));
+                        } else {
+                            Cu = 1.0;
+                        }
+
+                        if (y == 0){
+                            Cv = (1.0 / (Math.sqrt(2.0)));
+                        } else {
+                            Cv = 1.0;
+                        }
+
+                        double cr_sum = 0;
+                        for (int i = u; i < 8; i++){
+                            for (int j = v; j < 8; j++){
+
+                                double u_cos = Math.cos((((2 * i) + 1) * x * Math.PI) / 16.0);
+                                double v_cos = Math.cos((((2 * j) + 1) * y * Math.PI) / 16.0);
+
+                                cr_sum += Cu * Cv * u_cos * v_cos * Cr[i][j];
+
+                            }
+                        }
+                        cr_sum *= (1.0 / 4.0);
+                        inverseCr[x + u][y + v] = cr_sum;
+
+                    }
+                }
+
+
+            }
+        }
+        for (int u = 0; u < Cb.length; u += 8){
+            for (int v = 0; v < Cb[0].length; v += 8){
+                for (int x = 0; x < 8; x++){
+                    for (int y = 0; y < 8; y++){
+
+                        if (x == 0){
+                            Cu = (1.0 / (Math.sqrt(2.0)));
+                        } else {
+                            Cu = 1.0;
+                        }
+
+                        if (y == 0){
+                            Cv = (1.0 / (Math.sqrt(2.0)));
+                        } else {
+                            Cv = 1.0;
+                        }
+
+                        double cb_sum = 0;
+                        for (int i = u; i < 8; i++){
+                            for (int j = v; j < 8; j++){
+
+                                double u_cos = Math.cos((((2 * i) + 1) * x * Math.PI) / 16.0);
+                                double v_cos = Math.cos((((2 * j) + 1) * y * Math.PI) / 16.0);
+
+                                cb_sum += Cu * Cv * u_cos * v_cos * Cb[i][j];
+
+                            }
+                        }
+                        cb_sum *= (1.0 / 4.0);
+                        inverseCb[x + u][y + v] = cb_sum;
+                    }
+                }
 
 
             }
