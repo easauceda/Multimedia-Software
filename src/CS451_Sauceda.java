@@ -30,6 +30,8 @@ public class CS451_Sauceda
             case 3:
                 homeworkThree.start(args[1], input);
                 break;
+	    case 4: 
+		    homeworkFour(input);
             default:
                 usage();
                 break;
@@ -103,6 +105,36 @@ public class CS451_Sauceda
         }
     }
 
+    public static void homeworkFour(Scanner input){
+        int choice = 0;
+        String[] options = new String[3];
+        options[0] = "Block-Based Motion Compensation";
+        options[1] = "Removing Moving Objects";
+        options[2] = "Image Retrieval";
+        while(choice != 4) {
+            switch (choice) {
+                case 1:
+                    System.out.println("Enter target image path.");
+                    Image target = new Image(input.next());
+                    System.out.println("Enter reference image path.");
+                    Image ref = new Image(input.next());
+                    System.out.println("Enter macro block size");
+                    int n = validateInput(input.next());
+                    System.out.println("Enter search window size");
+                    int p = validateInput(input.next());
+                    homeworkFour.blockBasedMotionComp(target, ref, n, p);
+                    break;
+                case 2:
+                    System.out.println("Select a target image between 19 & 179");
+                    int n_task_two = validateInput(input.next());
+                    homeworkFour.removeMovingObjects(n_task_two);
+                    break;
+                case 3:
+                    break;
+            }
+            choice = displayMenu(input, options);
+        }
+    }
     public static void usage()
     {
         System.out.println("\nUsage: java CS451_Sauceda [homework number] [inputfile]\n");
