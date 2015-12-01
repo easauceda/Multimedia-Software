@@ -122,7 +122,7 @@ public class CS451_Sauceda
                     int n = validateInput(input.next());
                     System.out.println("Enter search window size");
                     int p = validateInput(input.next());
-                    homeworkFour.blockBasedMotionComp(target, ref, n, p);
+                    homeworkFour.blockBasedMotionComp(target, ref, n, p, true);
                     break;
                 case 2:
                     System.out.println("Select a target image between 19 & 179");
@@ -130,6 +130,9 @@ public class CS451_Sauceda
                     homeworkFour.removeMovingObjects(n_task_two);
                     break;
                 case 3:
+                    System.out.println("Input Image Name:");
+                    Image base_image = new Image(input.next());
+                    homeworkFour.findThreeSimilar(base_image);
                     break;
             }
             choice = displayMenu(input, options);

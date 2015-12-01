@@ -1,15 +1,13 @@
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
+import java.io.*;
+import java.util.*;
 
 
 public class homeworkFour {
-    public static void blockBasedMotionComp(Image target, Image ref, int n, int p) {
+    public static int[][][] blockBasedMotionComp(Image target, Image ref, int n, int p, boolean user) {
         n = validate(n, "n");
         p = validate(p, "p");
         Image error_img = new Image(target.getW(), target.getH());
-        ArrayList<int[]> motion_vectors = new ArrayList<int[]>();
+        int[][][] motion_vectors = new int[target.getW() / 8][target.getH() / 8][2];
 
         for (int y = 0; y < target.getH(); y += n){
             for (int x = 0; x < target.getW(); x += n){
@@ -71,12 +69,12 @@ public class homeworkFour {
                     }
                 }
 
-                System.out.println("Best Match: " + rx + ", " + ry);
-                System.out.println("MSD: " + best_msd);
+                //System.out.println("Best Match: " + rx + ", " + ry);
+                //System.out.println("MSD: " + best_msd);
                 int motion_vector_x = (x - rx);
                 int motion_vector_y = (y - ry);
                 int[] motion_v = new int[]{motion_vector_x, motion_vector_y};
-                motion_vectors.add(motion_v);
+                motion_vectors[x / 8][y / 8] = motion_v;
                 
                 save_motion_vectors(motion_vectors);
 
@@ -123,15 +121,24 @@ public class homeworkFour {
 
             }
         }
-        error_img.display("Error Image");
+        if(user){
+            error_img.display("Error Image");
+        }
+        return motion_vectors;
+    }
+    public static int[][][] blockBasedMotionComp(Image target, Image ref, int n, int p){
+        return blockBasedMotionComp(target, ref, n, p, false);
     }
 
-    private static void save_motion_vectors(ArrayList<int[]> motion_vectors) {
+
+    private static void save_motion_vectors(int[][][] motion_vectors) {
         try {
             BufferedWriter out = new BufferedWriter(new FileWriter("motion_vectors.txt"));
-            for (int[] vector : motion_vectors){
-                out.write("[" + vector[0] + ", " + vector[1] + "]");
-                out.newLine();
+            for (int[][] x : motion_vectors){
+                for (int [] vector : x){
+                    out.write("[" + vector[0] + ", " + vector[1] + "]");
+                    out.newLine();
+                }
             }
             out.close();
         } catch (IOException e) {
@@ -171,7 +178,141 @@ public class homeworkFour {
         //format chosen frame & reference frame
         String chosen_frame = String.format("IDB/Walk_%03d.ppm",n);
         String ref_frame = String.format("IDB/Walk_%03d.ppm",n - 2);
-        System.out.println(chosen_frame);
-        System.out.println(ref_frame);
+
+        Image chosen = new Image(chosen_frame);
+        Image ref = new Image(ref_frame);
+        Image five = new Image("IDB/Walk_005.ppm");
+
+        removeMovingObjectsMethodOne(chosen, ref, blockBasedMotionComp(chosen, ref, 8, 4));
+        removeMovingObjectsMethodTwo(chosen, five, blockBasedMotionComp(chosen, ref, 8, 4));
+
+
+    }
+
+    public static void removeMovingObjectsMethodTwo(Image target, Image ref, int[][][] motion_vectors) {
+        Image finImg = new Image(target.getW(), target.getH());
+        int a;
+        int b = 0;
+        for (int y = 0; y < target.getH(); y += 8) {
+            a = 0;
+            for (int x = 0; x < target.getW(); x += 8) {
+                int[] cur_mv = motion_vectors[a][b];
+                if (cur_mv[0] != 0 || cur_mv[1] != 0) {
+                    for (int j = y; j < y + 8; j++) {
+                        for (int i = x; i < x + 8; i++) {
+                            int[] refRGB = new int[3];
+                            ref.getPixel(i, j, refRGB);
+                            finImg.setPixel(i, j, refRGB);
+                        }
+                    }
+                } else {
+                    for (int j = y; j < y + 8; j++) {
+                        for (int i = x; i < x + 8; i++) {
+                            int[] targetRGB = new int[3];
+                            target.getPixel(i, j, targetRGB);
+                            finImg.setPixel(i, j, targetRGB);
+                        }
+                    }
+                }
+                a++;
+            }
+            b++;
+        }
+        target.display("Original");
+        finImg.display("Motion Removed Method Two");
+    }
+
+    public static void removeMovingObjectsMethodOne(Image target, Image ref, int[][][] motion_vectors) {
+        Image finImg = new Image(target.getW(), target.getH());
+        int a;
+        int b = 0;
+        int good_x = 0;
+        int good_y = 0;
+
+        for (int y = 0; y < target.getH(); y += 8) {
+            a = 0;
+            for (int x = 0; x < target.getW(); x += 8) {
+
+                int[] cur_mv = motion_vectors[a][b];
+                if (cur_mv[0] != 0 || cur_mv[1] != 0) {
+                    int ry = good_y;
+                    for (int j = y; j < y + 8; j++) {
+                        int rx = good_x;
+                        for (int i = x; i < x + 8; i++) {
+                            int[] refRGB = new int[3];
+                            ref.getPixel(rx, ry, refRGB);
+                            finImg.setPixel(i, j, refRGB);
+                            rx++;
+                        }
+                        ry++;
+                    }
+                } else {
+                    for (int j = y; j < y + 8; j++) {
+                        for (int i = x; i < x + 8; i++) {
+                            int[] targetRGB = new int[3];
+                            target.getPixel(i, j, targetRGB);
+                            finImg.setPixel(i, j, targetRGB);
+                        }
+                    }
+                    good_x = x;
+                    good_y = y;
+                }
+                a++;
+            }
+            b++;
+        }
+        target.display("Original");
+        finImg.display("Motion Removed Method One");
+    }
+
+
+    public static void findThreeSimilar(Image target) {
+        double[] percentages = new double[]{0,0,0};
+        String[] names = new String[3];
+
+        int total_pts = (target.getW() * target.getH()) / 64;
+        for (int i = 1; i <= 200; i++){
+            double sim_pts = total_pts;
+            String name = String.format("IDB/Walk_%03d.ppm", i);
+            Image ref = new Image(name);
+            int[][][] motion_vectors = blockBasedMotionComp(target, ref, 8, 4);
+            for (int[][] row : motion_vectors){
+                for (int[] mv : row){
+                    if (mv[0] != 0 || mv[1] != 0){
+                        sim_pts--;
+                    }
+                }
+            }
+
+            double similarity = sim_pts / total_pts;
+            if (percentages[0] < similarity){
+
+                percentages[2] = percentages[1];
+                names[2] = names[1];
+
+                percentages[1] = percentages[0];
+                names[1] = names[0];
+
+                percentages[0] = similarity;
+                names[0] = name;
+            } else if (percentages[1] < similarity){
+
+                percentages[2] = percentages[1];
+                names[2] = names[1];
+
+                percentages[1] = similarity;
+                names[1] = name;
+
+            } else if (percentages[2] < similarity){
+
+                percentages[2] = similarity;
+                names[2] = name;
+
+            }
+        }
+        for (int num = 0; num < 3; num++){
+            String similar = String.format("File: %s, Similarity: %f", names[num], percentages[num]);
+            System.out.println(similar);
+        }
     }
 }
